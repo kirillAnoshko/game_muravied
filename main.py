@@ -12,6 +12,7 @@ UP = 'up'
 DOWN = 'down'
 RIGHT = 'right'
 LEFT = 'left'
+EXIT = 'esc'
 ANTHILL_MAX = 1
 ANTHILL_MINI = 1
 ANTS_PER_ANTHILL_MAX = 10
@@ -106,6 +107,7 @@ class Field:
         self.cols = COLS
         self.anthills = []
         self.ants = []
+        self.messages = []
         self.cells = [[cell(Y=y, X=x) for x in range(COLS)] for y in range(ROWS)]
         self.player = player(y=random.randint(0, ROWS - 1), x=random.randint(0, COLS - 1))
         self.player.place(self)
@@ -163,9 +165,11 @@ class Field:
                     ant = Ant(y=ant_y, x=ant_x)
                     self.cells[ant_y][ant_x].content = ant
                     anthill.ants_counter -= 1
-                    anthill.spawn_counter = 1
+                    anthill.spawn_counter += 1
                     self.ants.append(ant)
-
+                    self.messages.append(
+                        f"Муравей заспаунился в {ant_x} {ant_y}"
+                    )
 
             if anthill.spawn_counter > 0:
                 anthill.spawn_counter += 1
@@ -178,7 +182,8 @@ class Field:
             neighbourds_coords = self.get_neighbours(ant.y, ant.x)
             if not neighbourds_coords:
                 continue
-            for y, x in neighbourds_coords:          
+            random.shuffle(neighbourds_coords)
+            for y, x in neighbourds_coords:
                 if y < 0 or y > self.rows - 1 or x < 0 or x > self.cols - 1:
                     # + 1 в счетчик сбежавших
                     self.ants.remove(ant)
@@ -192,8 +197,13 @@ class Field:
                 new_cell.content = ant
                 ant.y = y
                 ant.x = x
-                break
-            
+
+    def print_messages(self):
+        '''
+        Выводит сообщения на экран
+        '''
+        print(self.messages)
+
 
 def clear_screen():
     if os.name == 'nt':
@@ -203,6 +213,10 @@ def clear_screen():
 
 
 class Game:
+    '''
+    Создает игровое поле
+    Запускает цикл игры
+    '''
     def __init__(self):
         self.field = Field()
         self.field.add_anthills_randomly()
@@ -217,7 +231,7 @@ class Game:
                 self.field.player.move(LEFT, self.field)
             elif event.name == RIGHT:
                 self.field.player.move(RIGHT, self.field)
-            elif event.name == 'esc':
+            elif event.name == EXIT:
                 print("Выход из игры.")
                 return True
         return False
@@ -227,7 +241,7 @@ class Game:
         self.field.drawrows()
         self.field.spawn_ants()
         self.field.move_ants()
-
+        self.field.print_messages()
 
     def run(self):
         self.field.drawrows()
