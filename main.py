@@ -2,8 +2,8 @@ import keyboard
 import os
 import random
 
-COLS = 20
-ROWS = 10
+COLS = 10
+ROWS = 5
 EMPTY = '.'  # ☐
 PLAYER = 'P'
 ANT = 'a'
@@ -21,6 +21,7 @@ MAX_SPAWN_COUNTER = 5
 
 
 class GameObject:
+
     def __init__(self, y, x, image):
         self.y = y
         self.x = x
@@ -35,6 +36,25 @@ class GameObject:
                 new_y, new_x = random.choice(empty_cells)
                 field.cells[new_y][new_x].content = self
                 self.y, self.x = new_y, new_x
+
+    def move_player(self, direction, field):
+        """ Двигает игрока """
+        new_y, new_x = self.y, self.x
+
+        keys = keyboard.KEY_DOWN
+        if keys['up']:
+            new_y -= 1
+        if keys['down']:
+            new_y += 1
+        if keys['left']:
+            new_x -= 1
+        if keys['right']:
+            new_x += 1            
+
+       
+        field.cells[self.y][self.x].content = None
+        self.y, self.x = new_y, new_x
+        field.cells[self.y][self.x].content = self
 
     def draw(self, field):
         field.cells[self.y][self.x].content = self
@@ -57,9 +77,6 @@ class Cell:
 class Player(GameObject):
     def __init__(self, y=None, x=None):
         super().__init__(y, x, PLAYER)
-
-    def move(self, direction, field):
-        super().move_player(direction, field)
 
 
 class Ant(GameObject):
@@ -86,6 +103,7 @@ class Anthill(GameObject):
 
 
 class Field:
+    """ Игровое поле """
     def __init__(self, cell=Cell, player=Player, anthill=Anthill):
         self.rows = ROWS
         self.cols = COLS
@@ -103,11 +121,7 @@ class Field:
                 cell.draw()
             print()
 
-    def add_anthill(self, anthill):
-        self.anthills.append(anthill)
-        anthill.place(self)
-
-    def add_anthills_randomly(self):
+    def add_anthills(self):
         available_cells = [(x, y) for x in range(self.cols) for y in range(self.rows) if (x, y) != (self.player.x, self.player.y)]
         quantity = random.randint(ANTHILL_MINI, ANTHILL_MAX)
 
@@ -118,9 +132,13 @@ class Field:
             available_cells.remove((anthill_x, anthill_y))
 
             anthill = Anthill(x=anthill_x, y=anthill_y, quantity=random.randint(ANTHILL_MINI, ANTHILL_MAX))
-            self.add_anthill(anthill)
+            self.anthills.append(anthill)
+            anthill.place(self)
 
     def get_neighbours(self, y, x):
+        """
+        Получение координат соседей
+        """
         neighbours_coords = []
         for row in (-1, 0, -1):
             for col in (-1, 0, 1):
@@ -132,6 +150,9 @@ class Field:
         return neighbours_coords
 
     def spawn_ants(self):
+        """
+        Спавн муравьёв
+        """
         for anthill in self.anthills:
             if anthill.ants_counter > 0 and anthill.spawn_counter == 0:
                 anthill_x, anthill_y = anthill.x, anthill.y
@@ -163,7 +184,9 @@ class Field:
                     anthill.spawn_counter = 0
 
     def move_ants(self):
-        # движение муравья
+        """
+        Движение муравья
+        """
         for ant in self.ants:
             neighbourds_coords = self.get_neighbours(ant.y, ant.x)
             if not neighbourds_coords:
@@ -184,26 +207,10 @@ class Field:
                 ant.y = y
                 ant.x = x
 
-    def move_player(self, direction, field):
-        new_y, new_x = self.y, self.x
-
-        if direction == UP and self.y > 0 and not isinstance(field.cells[self.y - 1][self.x].content, Anthill):
-            new_y -= 1
-        elif direction == DOWN and self.y < field.rows - 1 and not isinstance(field.cells[self.y + 1][self.x].content, Anthill):
-            new_y += 1
-        elif direction == LEFT and self.x > 0 and not isinstance(field.cells[self.y][self.x - 1].content, Anthill):
-            new_x -= 1
-        elif direction == RIGHT and self.x < field.cols - 1 and not isinstance(field.cells[self.y][self.x + 1].content, Anthill):
-            new_x += 1
-
-        field.cells[self.y][self.x].content = None
-        self.y, self.x = new_y, new_x
-        field.cells[self.y][self.x].content = self
-
     def print_messages(self):
-        '''
+        """
         Выводит сообщения на экран
-        '''
+        """
         print(self.messages)
 
 
@@ -221,24 +228,23 @@ class Game:
     '''
     def __init__(self):
         self.field = Field()
-        self.field.add_anthills_randomly()
+        self.field.add_anthills()
         self.counter = 0
 
     def handle_keyboard_event(self, event):
         if event.event_type == keyboard.KEY_DOWN:
             if event.name == UP:
-                self.field.player.move(UP, self.field)
+                self.field.player.move_player(UP, self.field)
             elif event.name == DOWN:
-                self.field.player.move(DOWN, self.field)
+                self.field.player.move_player(DOWN, self.field)
             elif event.name == LEFT:
-                self.field.player.move(LEFT, self.field)
+                self.field.player.move_player(LEFT, self.field)
             elif event.name == RIGHT:
-                self.field.player.move(RIGHT, self.field)
-            elif event.name == EXIT:
+                self.field.player.move_player(RIGHT, self.field)
+            if event.name == EXIT:
                 print("Выход из игры.")
                 return True
         return False
-
 
     def run(self):
         self.field.drawrows()
@@ -252,7 +258,6 @@ class Game:
             clear_screen()
             self.field.messages.clear()
             self.field.drawrows()
-            self.field.move_player()
             self.field.move_ants()
             self.field.spawn_ants()
             self.field.print_messages()
