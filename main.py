@@ -41,17 +41,15 @@ class GameObject:
         """ Двигает игрока """
         new_y, new_x = self.y, self.x
 
-        keys = keyboard.KEY_DOWN
-        if keys['up']:
+        if direction == UP and self.y > 0 and not isinstance(field.cells[self.y - 1][self.x].content, Anthill):
             new_y -= 1
-        if keys['down']:
+        elif direction == DOWN and self.y < field.rows - 1 and not isinstance(field.cells[self.y + 1][self.x].content, Anthill):
             new_y += 1
-        if keys['left']:
+        elif direction == LEFT and self.x > 0 and not isinstance(field.cells[self.y][self.x - 1].content, Anthill):
             new_x -= 1
-        if keys['right']:
-            new_x += 1            
+        elif direction == RIGHT and self.x < field.cols - 1 and not isinstance(field.cells[self.y][self.x + 1].content, Anthill):
+            new_x += 1
 
-       
         field.cells[self.y][self.x].content = None
         self.y, self.x = new_y, new_x
         field.cells[self.y][self.x].content = self
